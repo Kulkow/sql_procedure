@@ -33,45 +33,63 @@ $$
 DROP PROCEDURE IF EXISTS paste_exch_quotes_archive$$
 CREATE PROCEDURE paste_exch_quotes_archive(IN start DATE, IN days INTEGER)
 BEGIN
-    DECLARE indexDay,randomExchangeId,randomBoundId,isNullRand,isNullRandVarieble,dayWeek INT;
+    DECLARE indexDay,exchangeId,boundId,isNullRand,isNullRandVariable,dayWeek,boundIdStart,boundIdEnd,indExchangeId,countExchangeIds INT;
     DECLARE bid, ask FLOAT;
+    DECLARE exchangeIds VARCHAR(255);
     IF days = 0 OR days IS NULL THEN
         SET days = 65;
     END IF;
 
-    SET isNullRandVarieble = 'bid';
-    SET isNullRand = 0;
-    IF RAND() > 0.5 THEN
-        SET isNullRand = 1;
-        IF RAND() > 0.5 THEN
-            SET isNullRandVarieble = 'ask';
-        END IF;
-    END IF;
+
+    SET exchangeIds = '[1,4,72,99,250,399,502,600]';
 
     SET indexDay = 1;
+    SET countExchangeIds =  JSON_LENGTH(exchangeIds);
     WHILE indexDay <= days
         DO
-            SET randomExchangeId = rand_array('[1,4,72,99,250,399,502,600]', 8);
-            SET randomBoundId = rand_ceil(2, 200);
-            SET bid = rand_float(-0.02, 2);
-            SET ask = rand_float(-0.02, 2);
-
-           IF isNullRand = 1 THEN
-                IF isNullRandVarieble = 'bid' THEN
-                    SET bid = null;
-                ELSE
-                    SET ask = null;
-                END IF;
-            END IF;
-
             SET start = DATE_SUB(start, INTERVAL 1 DAY);
             SET dayWeek = DAYOFWEEK(start);
             IF dayWeek!=1 AND dayWeek!=7 THEN
-                INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
-                VALUES (randomExchangeId, randomBoundId, start, bid, ask);
+                SET indExchangeId = 0;
+                SET boundIdStart = 1;
+                SET boundIdEnd = 200;
+                REPEAT
+                    SET exchangeId = JSON_EXTRACT(exchangeIds, CONCAT('$[', indExchangeId, ']'));
+
+                    select CONCAT('exchangeId -', exchangeId,' - ',indExchangeId);
+
+                    WHILE boundIdStart <= boundIdEnd
+                        DO
+                            SET isNullRandVariable = 'bid';
+                            SET isNullRand = 0;
+                            IF RAND() > 0.5 THEN
+                                SET isNullRand = 1;
+                                IF RAND() > 0.5 THEN
+                                    SET isNullRandVariable = 'ask';
+                                END IF;
+                            END IF;
+                            SET bid = rand_float(-0.02, 2);
+                            SET ask = rand_float(-0.02, 2);
+                            IF isNullRand = 1 THEN
+                                IF isNullRandVariable = 'bid' THEN
+                                    SET bid = null;
+                                ELSE
+                                    SET ask = null;
+                                END IF;
+                            END IF;
+                            SET boundId = boundIdStart;
+                            select CONCAT(exchangeId,',', boundId, ',',start);
+                            INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
+                            VALUES (exchangeId, boundId, start, bid, ask);
+                            SET boundIdStart = boundIdStart + 1;
+                    END WHILE;
+
+                SET indExchangeId = indExchangeId + 1;
+
+                UNTIL indExchangeId = countExchangeIds  END REPEAT;
             END IF;
             SET indexDay = indexDay + 1;
-        END WHILE;
+    END WHILE;
 END;
 $$
 DELIMITER ;
