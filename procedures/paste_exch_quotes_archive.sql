@@ -33,7 +33,7 @@ $$
 DROP PROCEDURE IF EXISTS paste_exch_quotes_archive$$
 CREATE PROCEDURE paste_exch_quotes_archive(IN start DATE, IN days INTEGER)
 BEGIN
-    DECLARE indexDay,randomExchangeId,randomBoundId,isNullRand,isNullRandVarieble INT;
+    DECLARE indexDay,randomExchangeId,randomBoundId,isNullRand,isNullRandVarieble,dayWeek INT;
     DECLARE bid, ask FLOAT;
     IF days = 0 OR days IS NULL THEN
         SET days = 65;
@@ -53,8 +53,8 @@ BEGIN
         DO
             SET randomExchangeId = rand_array('[1,4,72,99,250,399,502,600]', 8);
             SET randomBoundId = rand_ceil(2, 200);
-            SET bid = rand_float(-0.02, 200);
-            SET ask = rand_float(-0.02, 200);
+            SET bid = rand_float(-0.02, 2);
+            SET ask = rand_float(-0.02, 2);
 
            IF isNullRand = 1 THEN
                 IF isNullRandVarieble = 'bid' THEN
@@ -65,8 +65,11 @@ BEGIN
             END IF;
 
             SET start = DATE_SUB(start, INTERVAL 1 DAY);
-            INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
-            VALUES (randomExchangeId, randomBoundId, start, bid, ask);
+            SET dayWeek = DAYOFWEEK(start);
+            IF dayWeek!=1 AND dayWeek!=7 THEN
+                INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
+                VALUES (randomExchangeId, randomBoundId, start, bid, ask);
+            END IF;
             SET indexDay = indexDay + 1;
         END WHILE;
 END;
