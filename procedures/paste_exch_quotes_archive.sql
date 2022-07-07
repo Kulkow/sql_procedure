@@ -4,7 +4,7 @@ DELIMITER $$
 
 DROP FUNCTION IF EXISTS rand_ceil$$
 CREATE FUNCTION rand_ceil(start INTEGER, end INTEGER) RETURNS INTEGER
-    DETERMINISTIC
+    NOT DETERMINISTIC
 BEGIN
     DECLARE result INTEGER;
     SET result = FLOOR(start + RAND() * end);
@@ -14,7 +14,7 @@ $$
 
 DROP FUNCTION IF EXISTS rand_array$$
 CREATE FUNCTION rand_array(array VARCHAR(255), count INTEGER) RETURNS INTEGER
-    DETERMINISTIC
+    NOT DETERMINISTIC
 BEGIN
     RETURN CEIL(JSON_EXTRACT(array, CONCAT('$[', FLOOR(RAND() * count), ']')));
 END;
@@ -24,7 +24,7 @@ $$
 
 DROP FUNCTION IF EXISTS rand_float$$
 CREATE FUNCTION rand_float(start FLOAT, end FLOAT) RETURNS FLOAT
-    DETERMINISTIC
+    NOT DETERMINISTIC
 BEGIN
     RETURN start + RAND() * end;
 END;
@@ -55,7 +55,7 @@ BEGIN
                         SET boundIdEnd = 200;
                     WHILE boundIdStart <= boundIdEnd DO
                             SET exchangeId = JSON_EXTRACT(exchangeIds, CONCAT('$[', exchangeStartId, ']'));
-                            select CONCAT('$[', exchangeStartId, ']', exchangeId);
+                            #select CONCAT('$[', exchangeStartId, ']', exchangeId);
 
                             SET isNullRandVariable = 'bid';
                             SET isNullRand = 0;
@@ -79,7 +79,7 @@ BEGIN
                             END IF;
 
                             SET boundId = boundIdStart;
-                            select CONCAT(exchangeId,',', boundId, ',',start);
+                            #select CONCAT(exchangeId,',', boundId, ',',start);
                             INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
                             VALUES (exchangeId, boundId, start, bid, ask);
                             SET boundIdStart = boundIdStart + 1;
