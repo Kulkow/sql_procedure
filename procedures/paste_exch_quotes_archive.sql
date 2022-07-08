@@ -1,3 +1,4 @@
+SET GLOBAL log_bin_trust_function_creators = 1;
 TRUNCATE TABLE `exch_quotes_archive`;
 
 DELIMITER $$
@@ -33,9 +34,9 @@ $$
 DROP PROCEDURE IF EXISTS paste_exch_quotes_archive$$
 CREATE PROCEDURE paste_exch_quotes_archive(IN start DATE, IN days INTEGER)
 BEGIN
-    DECLARE indexDay,exchangeId,exchangeStartId, exchangeEndId, isNullRand,isNullRandVariable,dayWeek,boundId,boundIdStart,boundIdEnd INT;
+    DECLARE indexDay,exchangeId,exchangeStartId, exchangeEndId, isNullRand,dayWeek,boundId,boundIdStart,boundIdEnd INT;
     DECLARE bid, ask FLOAT;
-    DECLARE exchangeIds VARCHAR(255);
+    DECLARE exchangeIds,isNullRandVariable VARCHAR(255);
     IF days = 0 OR days IS NULL THEN
         SET days = 65;
     END IF;
