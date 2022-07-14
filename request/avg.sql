@@ -99,11 +99,11 @@ ORDER BY bond_id desc;
 
 SELECT DISTINCT(bond_id) FROM `exch_quotes_archive`;
 
-SELECT trading_date as date, bond_id, NULL as aBid, NUll as aAsk
+SELECT trading_date as date, bond_id, aBid, aAsk
 FROM
     (
         SELECT
-                MAKEDATE(YEAR(current_date()), DAYOFYEAR(current_date())) - INTERVAL daynum DAY trading_date,bond_id
+                MAKEDATE(YEAR(current_date()), DAYOFYEAR(current_date())) - INTERVAL daynum DAY as trading_date,bond_id,NULL as aBid, NUll as aAsk
         FROM
             (
                 SELECT 0 daynum
@@ -115,10 +115,68 @@ FROM
             ) AA
                 JOIN
             (
-                SELECT DISTINCT(bond_id) as bond_id  FROM `exch_quotes_archive`
+                SELECT DISTINCT(ARR.bond_id) as bond_id  FROM `exch_quotes_archive` as ARR
             ) BB
         order by trading_date desc
     ) AAA
+
+LIMIT 500;
+
+
+SELECT AAA.trading_date as date, AAA.bond_id, AVG(coalesce(AR.`bid`, 0)) over w as aBid, AVG(coalesce(AR.`ask`, 0)) over w as aAsk
+FROM
+    (
+        SELECT
+                MAKEDATE(YEAR(current_date()), DAYOFYEAR(current_date())) - INTERVAL daynum DAY as trading_date,bond_id
+        FROM
+            (
+                SELECT 0 daynum
+                UNION SELECT 1 UNION SELECT 2 UNION SELECT 3
+                UNION SELECT 4 UNION SELECT 5 UNION SELECT 6
+                UNION SELECT 7    UNION SELECT 8 UNION SELECT 9
+                UNION SELECT 10    UNION SELECT 11 UNION SELECT 12
+                order by daynum
+            ) AA
+                JOIN
+            (
+                SELECT DISTINCT(ARR.bond_id) as bond_id  FROM `exch_quotes_archive` as ARR
+            ) BB
+        order by trading_date desc
+    ) AAA
+    LEFT JOIN `exch_quotes_archive` as AR ON (AR.`trading_date` = AAA.trading_date AND AR.`bond_id` = AAA.bond_id)
+    WHERE AR.`trading_date`  BETWEEN SUBDATE(CURRENT_DATE(), INTERVAL 14 day) AND CURRENT_DATE()
+    GROUP BY AAA.`bond_id`, AAA.`trading_date`
+    WINDOW w AS (partition by AR.trading_date order by AR.bond_id)
+    order by AAA.trading_date desc, AR.`bond_id` desc;
+;
+
+
+SELECT AAA.trading_date as date, AAA.bond_id, AVG(coalesce(AR.`bid`, 0)) over w as aBid, AVG(coalesce(AR.`ask`, 0)) over w as aAsk
+FROM
+    (
+        SELECT
+                MAKEDATE(YEAR(current_date()), DAYOFYEAR(current_date())) - INTERVAL daynum DAY as trading_date,bond_id
+        FROM
+            (
+                SELECT 0 daynum
+                UNION SELECT 1 UNION SELECT 2 UNION SELECT 3
+                UNION SELECT 4 UNION SELECT 5 UNION SELECT 6
+                UNION SELECT 7    UNION SELECT 8 UNION SELECT 9
+                UNION SELECT 10    UNION SELECT 11 UNION SELECT 12
+                order by daynum
+            ) AA
+                JOIN
+            (
+                SELECT DISTINCT(ARR.bond_id) as bond_id  FROM `exch_quotes_archive` as ARR
+            ) BB
+        order by trading_date desc
+    ) AAA
+        JOIN `exch_quotes_archive` as AR ON (AR.`trading_date` = AAA.trading_date AND AR.`bond_id` = AAA.bond_id)
+WHERE AR.`trading_date`  BETWEEN '2022-07-08' AND '2022-07-11' AND AAA.`bond_id` = 5
+GROUP BY AAA.`bond_id`, AAA.`trading_date`
+    WINDOW w AS (partition by AR.trading_date order by AR.bond_id)
+order by AAA.trading_date desc, AR.`bond_id` desc;
+
 UNION ALL(
     SELECT
         `trading_date` as date,
@@ -131,33 +189,8 @@ UNION ALL(
     GROUP BY `bond_id`, `trading_date`
         WINDOW w AS (partition by trading_date order by bond_id)
     ORDER BY `trading_date` DESC
-);
+)
+GROUP BY `trading_date`;
 
 
 
-SELECT AAA.trading_date as date, bond_id,
-       AVG(coalesce(`bid`, 0)) over (partition by AR.trading_date order by AR.bond_id) as aBid,
-       AVG(coalesce(`ask`, 0)) over (partition by AR.trading_date order by AR.bond_id) as aAsk
-FROM
-    (
-        SELECT
-          MAKEDATE(YEAR(current_date()), DAYOFYEAR(current_date())) - INTERVAL daynum DAY as trading_date,bond_id, null as bid, null as ask
-        FROM
-            (
-                SELECT 0 daynum
-                UNION SELECT 1 UNION SELECT 2 UNION SELECT 3
-                UNION SELECT 4 UNION SELECT 5 UNION SELECT 6
-                UNION SELECT 7    UNION SELECT 8 UNION SELECT 9
-                UNION SELECT 10    UNION SELECT 11 UNION SELECT 12
-                order by daynum
-            ) AA
-                JOIN
-            (
-                SELECT DISTINCT(bond_id) as bond_id  FROM `exch_quotes_archive`
-            ) BB
-        order by trading_date desc
-    ) AAA
-LEFT JOIN `exch_quotes_archive` as AR ON (AR.trading_date = AAA.trading_date)
-    WHERE `trading_date` BETWEEN SUBDATE(CURRENT_DATE(), INTERVAL 14 day) AND CURRENT_DATE()
-    GROUP BY `bond_id`, AR.`trading_date`
-    ORDER BY `trading_date` DESC;

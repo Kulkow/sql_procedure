@@ -45,7 +45,6 @@ BEGIN
     SET exchangeIds = '[1,4,72,99,250,399,502,600]';
     SET indexDay = 1;
     WHILE indexDay <= days DO
-            SET start = DATE_SUB(start, INTERVAL 1 DAY);
             SET dayWeek = DAYOFWEEK(start);
             IF dayWeek!=1 AND dayWeek!=7 THEN
                 SET exchangeStartId = 0;
@@ -89,6 +88,7 @@ BEGIN
                 END WHILE;
             END IF;
             SET indexDay = indexDay + 1;
+            SET start = DATE_SUB(start, INTERVAL 1 DAY);
     END WHILE;
 END;
 $$
