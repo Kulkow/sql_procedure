@@ -45,19 +45,20 @@ BEGIN
     SET ins = NULL;
     SET exchangeIds = '[1,4,72,99,250,399,502,600]';
     SET indexDay = 1;
+    
+    Start transaction;
+    
     WHILE indexDay <= days DO
             SET dayWeek = DAYOFWEEK(start);
             IF dayWeek!=1 AND dayWeek!=7 THEN
+            	select dayWeek; 
                 SET exchangeStartId = 0;
-
                 SET exchangeEndId = JSON_LENGTH(exchangeIds);
                 WHILE exchangeStartId < exchangeEndId    DO
+                        SET exchangeId = JSON_EXTRACT(exchangeIds, CONCAT('$[', exchangeStartId, ']'));
                         SET boundIdStart = 1;
                         SET boundIdEnd = 200;
                     WHILE boundIdStart <= boundIdEnd DO
-                            SET exchangeId = JSON_EXTRACT(exchangeIds, CONCAT('$[', exchangeStartId, ']'));
-                            #select CONCAT('$[', exchangeStartId, ']', exchangeId);
-
                             SET isNullRandVariable = 'bid';
                             SET isNullRand = 0;
 
@@ -80,14 +81,15 @@ BEGIN
                             END IF;
 
                             SET boundId = boundIdStart;
-                            #select CONCAT(exchangeId,',', boundId, ',',start);
-                            #INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)        VALUES (exchangeId, boundId, start, bid, ask);
-                            IF @ins = NULL THEN
-                    	    	SET @ins = CONCAT('(',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');                            	
-                    	    ELSE
-                    	    	SET @ins = CONCAT(CAST(@ins as char), ',(',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');            	
-                            END IF;
-                            #select @ins;
+                            
+                            INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`) VALUES (exchangeId,boundId,start,bid,ask);
+
+                            #IF @ins = NULL THEN
+                    	    	#SET @ins = CONCAT('INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`) VALUES (',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');                            	
+                    	    #ELSE
+                    	    	#SET @ins = CONCAT(CAST(@ins as char), ',(',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');            	
+                            #END IF;
+                            #select LENGTH(@ins);
                             SET boundIdStart = boundIdStart + 1;
                     END WHILE;
                     SET exchangeStartId = exchangeStartId + 1;
@@ -96,9 +98,9 @@ BEGIN
             SET indexDay = indexDay + 1;
             SET start = DATE_SUB(start, INTERVAL 1 DAY);
     END WHILE;
-    PREPARE stmt_ins FROM 'INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)  VALUES ?';
-    EXECUTE stmt_ins USING @ins;
-    #select @ins;
+    commit;
+#    PREPARE stmt_ins FROM @ins;
+#    EXECUTE stmt_ins;
 END;
 $$
 DELIMITER ;
