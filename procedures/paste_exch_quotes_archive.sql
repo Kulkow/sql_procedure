@@ -37,11 +37,12 @@ BEGIN
     DECLARE indexDay,exchangeId,exchangeStartId, exchangeEndId, isNullRand,dayWeek,boundId,boundIdStart,boundIdEnd INT;
     DECLARE bid, ask FLOAT;
     DECLARE exchangeIds,isNullRandVariable VARCHAR(255);
+    DECLARE ins TEXT;
     IF days = 0 OR days IS NULL THEN
         SET days = 65;
     END IF;
 
-
+    SET ins = NULL;
     SET exchangeIds = '[1,4,72,99,250,399,502,600]';
     SET indexDay = 1;
     WHILE indexDay <= days DO
@@ -80,8 +81,13 @@ BEGIN
 
                             SET boundId = boundIdStart;
                             #select CONCAT(exchangeId,',', boundId, ',',start);
-                            INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)
-                            VALUES (exchangeId, boundId, start, bid, ask);
+                            #INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)        VALUES (exchangeId, boundId, start, bid, ask);
+                            IF @ins = NULL THEN
+                    	    	SET @ins = CONCAT('(',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');                            	
+                    	    ELSE
+                    	    	SET @ins = CONCAT(CAST(@ins as char), ',(',exchangeId,',', boundId,',',CAST(start as CHAR),',',ifnull(bid, 'NULL'),',',ifnull(ask, 'NULL'),')');            	
+                            END IF;
+                            #select @ins;
                             SET boundIdStart = boundIdStart + 1;
                     END WHILE;
                     SET exchangeStartId = exchangeStartId + 1;
@@ -90,6 +96,9 @@ BEGIN
             SET indexDay = indexDay + 1;
             SET start = DATE_SUB(start, INTERVAL 1 DAY);
     END WHILE;
+    PREPARE stmt_ins FROM 'INSERT INTO `exch_quotes_archive`(`exchange_id`, `bond_id`, `trading_date`, `bid`, `ask`)  VALUES ?';
+    EXECUTE stmt_ins USING @ins;
+    #select @ins;
 END;
 $$
 DELIMITER ;
